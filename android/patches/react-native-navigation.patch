@@ -1,0 +1,98 @@
+From 5e46e42a6bcc74613849f6c5ee9249d2605c7354 Mon Sep 17 00:00:00 2001
+From: Krystof Celba <krystof.celba@icloud.com>
+Date: Thu, 1 Mar 2018 16:42:46 +0100
+Subject: [PATCH 1/2] Don't ask overlay permission on RN >= 0.52
+
+In RN >= 0.52 the current activity is used to
+display redbox and other dev things instead of
+SYSTEM_ALERT_WINDOW so it's not needed to ask permission there.
+---
+ .../react/ReactDevPermission.java                  | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/android/app/src/main/java/com/reactnativenavigation/react/ReactDevPermission.java b/android/app/src/main/java/com/reactnativenavigation/react/ReactDevPermission.java
+index b68d0d2579..cea7b71580 100644
+--- a/android/app/src/main/java/com/reactnativenavigation/react/ReactDevPermission.java
++++ b/android/app/src/main/java/com/reactnativenavigation/react/ReactDevPermission.java
+@@ -14,9 +14,17 @@
+ public class ReactDevPermission {
+ 
+     public static boolean shouldAskPermission() {
+-        return NavigationApplication.instance.isDebug() &&
+-                Build.VERSION.SDK_INT >= 23 &&
+-                !Settings.canDrawOverlays(NavigationApplication.instance);
++        boolean result = false;
++        try {
++            // ReactInstanceManagerDevHelper interface is firstly available on RN 0.52
++            // so it can be used to easily test if the permission is still needed.
++            Class.forName("com.facebook.react.devsupport.ReactInstanceManagerDevHelper");
++        } catch (Exception e) {
++            result = NavigationApplication.instance.isDebug() &&
++                    Build.VERSION.SDK_INT >= 23 &&
++                    !Settings.canDrawOverlays(NavigationApplication.instance);
++        }
++        return result;
+     }
+ 
+     @TargetApi(23)
+
+From 29cbf627c55973ff3bc3fbad72b06ff1371525ed Mon Sep 17 00:00:00 2001
+From: Krystof Celba <krystof.celba@icloud.com>
+Date: Thu, 1 Mar 2018 16:52:21 +0100
+Subject: [PATCH 2/2] Display redbox with error even if there is not any react
+ activity yet
+
+Return SplashActivity If there is not yet any react activity
+so the redbox gets displayed if error occurs.
+---
+ .../controllers/SplashActivity.java                      | 2 ++
+ .../react/JsDevReloadListenerReplacer.java               | 9 ++++++++-
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/android/app/src/main/java/com/reactnativenavigation/controllers/SplashActivity.java b/android/app/src/main/java/com/reactnativenavigation/controllers/SplashActivity.java
+index e85de9e40a..5355a456a4 100644
+--- a/android/app/src/main/java/com/reactnativenavigation/controllers/SplashActivity.java
++++ b/android/app/src/main/java/com/reactnativenavigation/controllers/SplashActivity.java
+@@ -15,6 +15,7 @@
+ 
+ public abstract class SplashActivity extends AppCompatActivity {
+     public static boolean isResumed = false;
++    public static SplashActivity instance = null;
+ 
+     public static void start(Activity activity) {
+         Intent intent = activity.getPackageManager().getLaunchIntentForPackage(activity.getPackageName());
+@@ -30,6 +31,7 @@ public static void start(Activity activity) {
+     @Override
+     protected void onCreate(@Nullable Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
++        instance = this;
+         LaunchArgs.instance.set(getIntent());
+         setSplashLayout();
+         IntentDataHandler.saveIntentData(getIntent());
+diff --git a/android/app/src/main/java/com/reactnativenavigation/react/JsDevReloadListenerReplacer.java b/android/app/src/main/java/com/reactnativenavigation/react/JsDevReloadListenerReplacer.java
+index 1f3ae447c9..10aee0f927 100644
+--- a/android/app/src/main/java/com/reactnativenavigation/react/JsDevReloadListenerReplacer.java
++++ b/android/app/src/main/java/com/reactnativenavigation/react/JsDevReloadListenerReplacer.java
+@@ -1,6 +1,7 @@
+ package com.reactnativenavigation.react;
+ 
+ import com.facebook.react.ReactInstanceManager;
++import com.reactnativenavigation.controllers.SplashActivity;
+ import com.reactnativenavigation.utils.ReflectionUtils;
+ 
+ import java.lang.reflect.InvocationHandler;
+@@ -68,7 +69,13 @@ public Object invoke(Object proxy, Method method, Object[] args) throws Throwabl
+                 listener.onJsDevReload();
+             }
+ 
+-            return method.invoke(originalReactHelper, args);
++            Object result = method.invoke(originalReactHelper, args);
++
++            if (methodName.equals("getCurrentActivity") && result == null) {
++                return SplashActivity.instance;
++            }
++
++            return result;
+         }
+     }
+ }

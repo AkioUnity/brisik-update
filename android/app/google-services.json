@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "48106300072",
+    "firebase_url": "https://birsik-f2eed.firebaseio.com",
+    "project_id": "birsik-f2eed",
+    "storage_bucket": "birsik-f2eed.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:48106300072:android:3f1635fa9bb3e46a",
+        "android_client_info": {
+          "package_name": "com.esportsglobalgamers"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "48106300072-f1li516hvd38aemkuhqrt12m4b0ioej4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwrRe9_dBSPZDDtMzK3yXzeKVYckB_fwo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
